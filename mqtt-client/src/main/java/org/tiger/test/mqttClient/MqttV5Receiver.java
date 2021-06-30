@@ -24,6 +24,8 @@ import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.alibaba.fastjson.JSON;
+
 /**
  * @author WangHuiyuan
  *
@@ -64,6 +66,7 @@ public class MqttV5Receiver implements MqttCallback {
 				
 		ReceivedMessage receivedMessage = null;
 		if (receivedMessages.isEmpty()) {
+			logger.warn("====== I will wait [{}] milliseconds", waitMilliseconds);
 		  wait(waitMilliseconds);
 		}
 		if (!receivedMessages.isEmpty()) {
@@ -79,10 +82,11 @@ public class MqttV5Receiver implements MqttCallback {
 	}
 	  
 	  
+	public static long waitMilliseconds = 40*30000;
 	public boolean validateReceipt(String sendTopic, int expectedQos, byte[] sentBytes) throws MqttException, InterruptedException {
 
 
-	    long waitMilliseconds = 40*30000;
+	    
 	    ReceivedMessage receivedMessage = receiveNext(waitMilliseconds);
 	    if (receivedMessage == null) {
 	      logger.info(" No message received in waitMilliseconds={}", waitMilliseconds);
@@ -112,7 +116,7 @@ public class MqttV5Receiver implements MqttCallback {
 
 	@Override
 	public void disconnected(MqttDisconnectResponse disconnectResponse) {
-		// TODO Auto-generated method stub
+		logger.info("disconnected: {}", disconnectResponse.getReasonString());
 
 	}
 
@@ -125,14 +129,14 @@ public class MqttV5Receiver implements MqttCallback {
 	 */
 	@Override
 	public void mqttErrorOccurred(MqttException exception) {
-		// TODO Auto-generated method stub
+		logger.error("", exception);
 
 	}
 
 	@Override
 	public void messageArrived(String topic, MqttMessage message) throws Exception {
 
-		// logger.fine(methodName + ": '" + new String(message.getPayload()) + "'");
+		logger.info("====== Received message:[{}]", new String(message.getPayload()));
 		receivedMessages.add(new ReceivedMessage(topic, message));
 		notify();
 
@@ -147,7 +151,11 @@ public class MqttV5Receiver implements MqttCallback {
 	 */
 	@Override
 	public void deliveryComplete(IMqttToken token) {
-		// TODO Auto-generated method stub
+		try {
+			logger.info("deliveryComplete message: {}", new String(token.getMessage().getPayload()));
+		} catch (MqttException e) {
+			logger.error("", e);
+		}
 
 	}
 
@@ -159,7 +167,7 @@ public class MqttV5Receiver implements MqttCallback {
 	 */
 	@Override
 	public void connectComplete(boolean reconnect, String serverURI) {
-		// TODO Auto-generated method stub
+		logger.info("connectComplete: reconnect[{}], serverURI[{}]", reconnect, serverURI);
 
 	}
 
@@ -171,7 +179,8 @@ public class MqttV5Receiver implements MqttCallback {
 	 */
 	@Override
 	public void authPacketArrived(int reasonCode, MqttProperties properties) {
-		// TODO Auto-generated method stub
-
+		logger.info("authPacketArrived: reasonCode[{}], MqttProperties[{}]", reasonCode, 
+				JSON.toJSONString(properties));
+		
 	}
 }
